@@ -5,3 +5,6 @@ build:
 	@mvn clean package
 clean:
 	@mvn clean
+
+tool:
+	@java ./src/main/java/com/craftinginterpreters/tool/GenerateAst.java $(filter-out $@,$(MAKECMDGOALS))
