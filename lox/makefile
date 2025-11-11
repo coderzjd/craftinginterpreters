@@ -1,3 +1,5 @@
+file:
+	@make run 2.txt
 run:
 	@mvn clean package -q
 	@java -jar ./target/lox-1.0.jar $(filter-out $@,$(MAKECMDGOALS))
@@ -7,6 +9,6 @@ clean:
 	@mvn clean
 
 tool:
-	@java ./src/main/java/com/craftinginterpreters/tool/GenerateAst.java $(filter-out $@,$(MAKECMDGOALS))
+	@java ./src/main/java/com/craftinginterpreters/tool/GenerateAst.java ./src/main/java/com/craftinginterpreters/lox
 ast:
 	@java ./src/main/java/com/craftinginterpreters/lox/AstPrinter.java $(filter-out $@,$(MAKECMDGOALS))
