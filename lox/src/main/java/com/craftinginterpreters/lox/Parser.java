@@ -138,6 +138,30 @@ class Parser {
         return new Stmt.Expression(expr);
     }
 
+    private Stmt.Function function(String kind) {
+        // 你可能会对这里的kind参数感到疑惑。
+        // 解析普通方法。kind 参数中传入 "function"
+        // 解析类中的方法。kind 参数中传入 "method"
+        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
+        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+
+                parameters.add(
+                        consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+        // 在调用block()方法之前，我们已经消费了函数体开头的{。这是因为block()方法假定大括号标记已经匹配了
+        List<Stmt> body = block();
+        return new Stmt.Function(name, parameters, body);
+    }
+
     private List<Stmt> block() {
         List<Stmt> statements = new ArrayList<>();
 
@@ -195,6 +219,9 @@ class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(FUN)) {
+                return function("function");
+            }
             if (match(VAR)) {
                 return varDeclaration();
             }

@@ -1,2 +1,5 @@
+fun sayHi(first, last) {
+  print "Hi, " + first + " " + last + "!";
+}
 
- print clock();
+sayHi("Dear", "Reader");
