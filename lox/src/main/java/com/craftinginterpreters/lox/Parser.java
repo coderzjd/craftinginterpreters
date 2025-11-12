@@ -49,11 +49,11 @@ class Parser {
         // 这个函数执行语法脱糖，把for循环转化为while
         // for (var i = 0; i < 10; i = i + 1) print i;
         // {
-        //     var i = 0;
-        //     while (i < 10) {
-        //         print i;
-        //         i = i + 1;
-        //     }
+        // var i = 0;
+        // while (i < 10) {
+        // print i;
+        // i = i + 1;
+        // }
         // }
         consume(LEFT_PAREN, "Expect '(' after 'for'.");
         Stmt initializer;
@@ -258,8 +258,40 @@ class Parser {
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
+        return call();
+    }
 
-        return primary();
+    private Expr call() {
+        Expr expr = primary();
+
+        while (true) {
+            if (match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                // C语言标准要求在符合标准的实现中，一个函数至少要支持127个参数，但是没有指定任何上限。
+                // Java规范规定一个方法可以接受不超过255个参数
+                if (arguments.size() >= 255) {
+                    error(peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume(RIGHT_PAREN,
+                "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
     }
 
     private Expr primary() {
