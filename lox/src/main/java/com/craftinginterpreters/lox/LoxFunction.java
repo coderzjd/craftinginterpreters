@@ -4,8 +4,10 @@ import java.util.List;
 
 class LoxFunction implements LoxCallable {
     private final Stmt.Function declaration;
+    private final Environment closure;
 
-    LoxFunction(Stmt.Function declaration) {
+    LoxFunction(Stmt.Function declaration, Environment closure) {
+        this.closure = closure;
         this.declaration = declaration;
     }
 
@@ -14,7 +16,7 @@ class LoxFunction implements LoxCallable {
         // 每个函数都会维护自己的环境，其中存储着那些变量
         // 函数递归
         // 通过在执行函数主体时使用不同的环境，用同样的代码调用相同的函数可以产生不同的结果
-        Environment environment = new Environment(interpreter.globals);
+        Environment environment = new Environment(closure);
         for (int i = 0; i < declaration.params.size(); i++) {
             environment.define(declaration.params.get(i).lexeme, arguments.get(i));
         }
