@@ -18,8 +18,12 @@ class LoxFunction implements LoxCallable {
         for (int i = 0; i < declaration.params.size(); i++) {
             environment.define(declaration.params.get(i).lexeme, arguments.get(i));
         }
-
-        interpreter.executeBlock(declaration.body, environment);
+        // 拿到通过异常抛出的值
+        try {
+            interpreter.executeBlock(declaration.body, environment);
+        } catch (Return returnValue) {
+            return returnValue.value;
+        }
         return null;
     }
 
