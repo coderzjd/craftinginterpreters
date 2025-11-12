@@ -1,4 +1,2 @@
-print "hi" or 2; // "hi".
-print nil or "yes"; // "yes".
-if ( false ) if ( false ) print 1; else print 3;  else print 2;
-if ( false ) print 1;  else print 2;
+while(true)
+  print 1;
