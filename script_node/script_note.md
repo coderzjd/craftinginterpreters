@@ -25,7 +25,8 @@ Crafting Interpreters介绍
 3. Interpreter如何执行代码
 4. 了解函数运行上下文与闭包
 5. vscode是怎么发现return之后的dead code
-6. 等等……
+6. 三种面向对象oop、prototype、multiple
+7. 等等……
 不剧透了，祝各位玩得开心
 最后还有些资料，可以去gitee搜索查看
 
