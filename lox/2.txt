@@ -1,7 +1,5 @@
-class DevonshireCream {
-  serveOn() {
-    return "Scones";
-  }
-}
-
-print DevonshireCream; // Prints "DevonshireCream
+class Bagel {}
+var bagel = Bagel();
+bagel.name = 1;
+print bagel.name;
+print bagel; // Prints "Bagel instance".
