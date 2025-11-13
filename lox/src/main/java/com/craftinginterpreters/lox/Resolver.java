@@ -22,6 +22,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum FunctionType {
         NONE,
         FUNCTION,
+        INITIALIZER,
         METHOD
     }
 
@@ -53,6 +54,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         scopes.peek().put("this", true);
         for (Stmt.Function method : stmt.methods) {
             FunctionType declaration = FunctionType.METHOD;
+            if (method.name.lexeme.equals("init")) {
+                declaration = FunctionType.INITIALIZER;
+            }
             resolveFunction(method, declaration);
         }
         define(stmt.name);
@@ -98,6 +102,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             Lox.error(stmt.keyword, "Can't return from top-level code.");
         }
         if (stmt.value != null) {
+            if (currentFunction == FunctionType.INITIALIZER) {
+                // 禁止初始化函数返回一个值
+                Lox.error(stmt.keyword, "Can't return a value from an initializer.");
+            }
             resolve(stmt.value);
         }
 
@@ -180,7 +188,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         // 通过currentClass限制this只能在class中使用
         // js你学着点吧!!!
         if (currentClass == ClassType.NONE) {
-            Lox.error(expr.keyword,"Can't use 'this' outside of a class.");
+            Lox.error(expr.keyword, "Can't use 'this' outside of a class.");
             return null;
         }
         resolveLocal(expr, expr.keyword);

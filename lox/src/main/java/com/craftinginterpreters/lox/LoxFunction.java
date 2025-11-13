@@ -5,8 +5,10 @@ import java.util.List;
 class LoxFunction implements LoxCallable {
     private final Stmt.Function declaration;
     private final Environment closure;
+    private final boolean isInitializer;
 
-    LoxFunction(Stmt.Function declaration, Environment closure) {
+    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
+        this.isInitializer = isInitializer;
         this.closure = closure;
         this.declaration = declaration;
     }
@@ -19,7 +21,7 @@ class LoxFunction implements LoxCallable {
         // 这样，当函数体内访问this时，会在新环境中找到它
         Environment environment = new Environment(closure);
         environment.define("this", instance);
-        return new LoxFunction(declaration, environment);
+        return new LoxFunction(declaration, environment, isInitializer);
     }
 
     @Override
@@ -35,7 +37,15 @@ class LoxFunction implements LoxCallable {
         try {
             interpreter.executeBlock(declaration.body, environment);
         } catch (Return returnValue) {
+            // 使一个空的return返回this而不是nil
+            if (isInitializer) {
+                return closure.getAt(0, "this");
+            }
             return returnValue.value;
+        }
+        // init()方法总是返回this
+        if (isInitializer) {
+            return closure.getAt(0, "this");
         }
         return null;
     }

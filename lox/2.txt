@@ -1,10 +1,9 @@
 class Foo {
-  init(name){
-    this.name = name;
-  }
-  hello (){
-    print "my name is " + this.name;
+  init() {
+    print this;
+    return;
   }
 }
-var f1 = Foo("张三");
-f1.hello();
+
+var foo = Foo();
+print foo.init();

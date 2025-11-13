@@ -185,7 +185,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         environment.define(stmt.name.lexeme, null);
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
-            LoxFunction function = new LoxFunction(method, environment);
+            // 检查class内函数是否包含init方法
+            LoxFunction function = new LoxFunction(method, environment,method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
         LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
@@ -203,7 +204,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitFunctionStmt(Stmt.Function stmt) {
         // 这是函数声明时生效的环境，而不是函数被调用时的环境
         // 它代表了函数声明时的词法作用域
-        LoxFunction function = new LoxFunction(stmt, environment);
+        // 非class内定义的函数：肯定不包含init方法
+        LoxFunction function = new LoxFunction(stmt, environment, false);
         environment.define(stmt.name.lexeme, function);
         return null;
     }
