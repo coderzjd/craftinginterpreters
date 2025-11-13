@@ -16,8 +16,8 @@ class LoxInstance {
             return fields.get(name.lexeme);
         }
         LoxFunction method = klass.findMethod(name.lexeme);
-        if (method != null){
-            return method;
+        if (method != null) {
+            return method.bind(this);
         }
         // 如果这个实例中不包含给定名称的属性和方法，会发生什么。我们可以悄悄返回一些假值，如nil，
         // 但是根据我对JavaScript等语言的经验，这种行为只是掩盖了错误，而没有做任何有用的事。
