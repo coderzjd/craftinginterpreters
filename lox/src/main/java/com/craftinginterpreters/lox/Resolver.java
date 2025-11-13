@@ -11,9 +11,15 @@ import java.util.Stack;
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
+    private FunctionType currentFunction = FunctionType.NONE;
 
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
+    }
+
+    private enum FunctionType {
+        NONE,
+        FUNCTION
     }
 
     void resolve(List<Stmt> statements) {
@@ -41,7 +47,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         declare(stmt.name);
         define(stmt.name);
 
-        resolveFunction(stmt);
+        resolveFunction(stmt, FunctionType.FUNCTION);
         return null;
     }
 
@@ -63,6 +69,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitReturnStmt(Stmt.Return stmt) {
+        if (currentFunction == FunctionType.NONE) {
+            Lox.error(stmt.keyword, "Can't return from top-level code.");
+        }
         if (stmt.value != null) {
             resolve(stmt.value);
         }
@@ -153,7 +162,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         expr.accept(this);
     }
 
-    private void resolveFunction(Stmt.Function function) {
+    private void resolveFunction(Stmt.Function function, FunctionType type) {
+        FunctionType enclosingFunction = currentFunction;
+        currentFunction = type;
         beginScope();
         for (Token param : function.params) {
             declare(param);
@@ -161,6 +172,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         resolve(function.body);
         endScope();
+        currentFunction = enclosingFunction;
     }
 
     private void beginScope() {
@@ -173,10 +185,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     private void declare(Token name) {
         // 作用域map中与key相关联的值代表的是我们是否已经结束了对变量初始化式的解析
-        if (scopes.isEmpty())
+        if (scopes.isEmpty()) {
             return;
-
+        }
         Map<String, Boolean> scope = scopes.peek();
+        // 局部作用域内声明多个同名的变量报错
+        if (scope.containsKey(name.lexeme)) {
+            Lox.error(name, "Already variable with this name in this scope.");
+        }
         scope.put(name.lexeme, false);
     }
 

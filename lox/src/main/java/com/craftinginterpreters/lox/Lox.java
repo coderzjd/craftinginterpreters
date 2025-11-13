@@ -67,6 +67,10 @@ public class Lox {
         }
         Resolver resolver = new Resolver(interpreter);
         resolver.resolve(statements);
+        // 语义分析不过就报错
+        if (hadError) {
+            return;
+        }
         // System.out.print("expression is ");
         // System.out.println(new AstPrinter().print(statements));
         interpreter.interpret(statements);
