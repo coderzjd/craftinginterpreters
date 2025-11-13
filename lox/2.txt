@@ -1,12 +1,4 @@
-class Thing {
-  getCallback() {
-    fun localFunction() {
-      print this;
-    }
-
-    return localFunction;
-  }
+fun notAMethod() {
+  print this;
 }
-
-var callback = Thing().getCallback();
-callback();
+notAMethod();

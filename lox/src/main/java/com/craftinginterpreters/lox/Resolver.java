@@ -12,6 +12,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
     private FunctionType currentFunction = FunctionType.NONE;
+    // 它的值告诉我们，在遍历语法树时，我们目前是否在一个类声明中。它一开始是NONE，意味着我们不在类中
+    private ClassType currentClass = ClassType.NONE;
 
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
@@ -21,6 +23,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         NONE,
         FUNCTION,
         METHOD
+    }
+
+    private enum ClassType {
+        NONE,
+        CLASS
     }
 
     void resolve(List<Stmt> statements) {
@@ -39,6 +46,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.CLASS;
         declare(stmt.name);
         beginScope();
         scopes.peek().put("this", true);
@@ -48,6 +57,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         define(stmt.name);
         endScope();
+        currentClass = enclosingClass;
         return null;
     }
 
@@ -167,6 +177,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitThisExpr(Expr.This expr) {
+        // 通过currentClass限制this只能在class中使用
+        // js你学着点吧!!!
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expr.keyword,"Can't use 'this' outside of a class.");
+            return null;
+        }
         resolveLocal(expr, expr.keyword);
         return null;
     }
