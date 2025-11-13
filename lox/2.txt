@@ -1,4 +1,10 @@
-fun notAMethod() {
-  print this;
+class Foo {
+  init(name){
+    this.name = name;
+  }
+  hello (){
+    print "my name is " + this.name;
+  }
 }
-notAMethod();
+var f1 = Foo("张三");
+f1.hello();
