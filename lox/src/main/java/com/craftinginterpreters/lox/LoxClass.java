@@ -35,3 +35,14 @@ class LoxClass implements LoxCallable {
         return 0;
     }
 }
+// LoxClass 与 LoxInstance 梳理
+// 1、LoxClass 类本身存储了name和 methods 
+    // class Bacon {
+    //   eat() {
+    //     print "Crunch crunch crunch!";
+    //   }
+    // }
+    // 获得一个class : {name: Bacon, methods:[eat] }
+// 2、LoxClass实现了LoxCallable 可以直接 call方法实例化LoxInstance。
+    // Bacon() 
+    // 获得一个Bacon实例：{klass: Bacon,fields:[存储setter的字段]}
