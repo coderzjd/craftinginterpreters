@@ -1,5 +1,5 @@
 file:
-	@make repl 2.txt
+	@make repl 2.lox
 repl:
 	@mvn clean package -q
 	@java -jar ./target/lox-1.0.jar $(filter-out $@,$(MAKECMDGOALS))
