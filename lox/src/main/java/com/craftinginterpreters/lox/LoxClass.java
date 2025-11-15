@@ -5,9 +5,12 @@ import java.util.Map;
 
 class LoxClass implements LoxCallable {
     final String name;
+    final LoxClass superclass;
     private final Map<String, LoxFunction> methods;
 
-    LoxClass(String name, Map<String, LoxFunction> methods) {
+    LoxClass(String name, LoxClass superclass,
+            Map<String, LoxFunction> methods) {
+        this.superclass = superclass;
         this.name = name;
         this.methods = methods;
     }
@@ -15,6 +18,9 @@ class LoxClass implements LoxCallable {
     LoxFunction findMethod(String name) {
         if (methods.containsKey(name)) {
             return methods.get(name);
+        }
+        if (superclass != null) {
+            return superclass.findMethod(name);
         }
         return null;
     }
@@ -47,9 +53,9 @@ class LoxClass implements LoxCallable {
 // LoxClass 与 LoxInstance 梳理
 // 1、LoxClass 类本身存储了name和 methods
 // class Bacon {
-//  eat() {
-//      print "Crunch crunch crunch!";
-//  }
+// eat() {
+// print "Crunch crunch crunch!";
+// }
 // }
 // 获得一个class : {name: Bacon, methods:[eat] }
 // 2、LoxClass实现了LoxCallable 可以直接 call方法实例化LoxInstance。
