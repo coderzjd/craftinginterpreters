@@ -50,6 +50,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         ClassType enclosingClass = currentClass;
         currentClass = ClassType.CLASS;
         declare(stmt.name);
+        define(stmt.name); // 类名立即定义，允许在方法体内引用自己
+        // class Oops < Oops {} 这种语法检查报错
+        if (stmt.superclass != null && stmt.name.lexeme.equals(stmt.superclass.name.lexeme)) {
+            Lox.error(stmt.superclass.name, "A class can't inherit from itself.");
+        }
+        if (stmt.superclass != null) {
+            resolve(stmt.superclass);
+        }
         beginScope();
         scopes.peek().put("this", true);
         for (Stmt.Function method : stmt.methods) {
@@ -58,14 +66,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                 declaration = FunctionType.INITIALIZER;
             }
             resolveFunction(method, declaration);
-        }
-        define(stmt.name);
-        // class Oops < Oops {} 这种语法检查报错
-        if (stmt.superclass != null &&stmt.name.lexeme.equals(stmt.superclass.name.lexeme)) {
-            Lox.error(stmt.superclass.name,"A class can't inherit from itself.");
-        }
-        if (stmt.superclass != null) {
-            resolve(stmt.superclass);
         }
         endScope();
         currentClass = enclosingClass;
