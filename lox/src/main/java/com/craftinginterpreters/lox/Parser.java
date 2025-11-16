@@ -372,6 +372,13 @@ class Parser {
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
         }
+        if (match(SUPER)) {
+            Token keyword = previous();
+            // 对于super，随后的.和属性名是super表达式不可分割的一部分。你不可能只有一个单独的super标记。
+            consume(DOT, "Expect '.' after 'super'.");
+            Token method = consume(IDENTIFIER,"Expect superclass method name.");
+            return new Expr.Super(keyword, method);
+        }
         if (match(THIS)) {
             return new Expr.This(previous());
         }
