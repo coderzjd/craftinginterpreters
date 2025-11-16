@@ -28,7 +28,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     private enum ClassType {
         NONE,
-        CLASS
+        CLASS,
+        SUBCLASS
     }
 
     void resolve(List<Stmt> statements) {
@@ -56,6 +57,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             Lox.error(stmt.superclass.name, "A class can't inherit from itself.");
         }
         if (stmt.superclass != null) {
+            currentClass = ClassType.SUBCLASS;
             resolve(stmt.superclass);
         }
         if (stmt.superclass != null) {
@@ -72,7 +74,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             resolveFunction(method, declaration);
         }
         endScope();
-        if (stmt.superclass != null){
+        if (stmt.superclass != null) {
             endScope();
         }
         currentClass = enclosingClass;
@@ -200,6 +202,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     // 使用桶结构计算super的作用域距离
     public Void visitSuperExpr(Expr.Super expr) {
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expr.keyword, "Can't use 'super' outside of a class.");
+        } else if (currentClass != ClassType.SUBCLASS) {
+            Lox.error(expr.keyword,"Can't use 'super' in a class with no superclass.");
+        }
         resolveLocal(expr, expr.keyword);
         return null;
     }
