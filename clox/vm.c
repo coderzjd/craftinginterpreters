@@ -4,13 +4,28 @@
 #include "vm.h"
 
 VM vm;
-
+static void resetStack()
+{
+    vm.stackTop = vm.stack;
+}
 void initVM()
 {
+    resetStack();
 }
 
 void freeVM()
 {
+}
+void push(Value value)
+{
+    *vm.stackTop = value;
+    //  指向下一个空位置
+    vm.stackTop++;
+}
+Value pop()
+{
+    vm.stackTop--;
+    return *vm.stackTop;
 }
 // | 写在                  | 作用域             | 链接属性                |
 // | ---------------      | ----------         | ------------------- |
@@ -27,7 +42,15 @@ static InterpretResult run()
     for (;;)
     {
 #ifdef DEBUG_TRACE_EXECUTION
-            disassembleInstruction(vm.chunk,(int)(vm.ip - vm.chunk->code));
+        printf("          ");
+        for (Value *slot = vm.stack; slot < vm.stackTop; slot++)
+        {
+            printf("vm.stack is [ ");
+            printValue(*slot);
+            printf(" ]");
+        }
+        printf("\n");
+        disassembleInstruction(vm.chunk, (int)(vm.ip - vm.chunk->code));
 #endif
         uint8_t instruction;
         switch (instruction = READ_BYTE())
@@ -35,12 +58,13 @@ static InterpretResult run()
         case OP_CONSTANT:
         {
             Value constant = READ_CONSTANT();
-            printValue(constant);
-            printf("\n");
+            push(constant);
             break;
         }
         case OP_RETURN:
         {
+            printValue(pop());
+            printf("\n");
             return INTERPRET_OK;
         }
         }
