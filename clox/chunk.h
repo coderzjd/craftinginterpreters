@@ -2,8 +2,11 @@
 #define clox_chunk_h
 
 #include "common.h"
+#include "value.h"
+
 typedef enum
 {
+    OP_CONSTANT,
     OP_RETURN,
 } OpCode;
 
@@ -15,9 +18,13 @@ typedef struct
     int capacity;
     // 保存字节码的数组
     uint8_t *code;
+    // 偏移量查找对应的行号。
+    int* lines;
+    ValueArray constants;
 } Chunk;
 
 void initChunk(Chunk *chunk);
-void freeChunk(Chunk* chunk);
-void writeChunk(Chunk *chunk, uint8_t byte);
+void freeChunk(Chunk *chunk);
+void writeChunk(Chunk* chunk, uint8_t byte, int line);
+int addConstant(Chunk *chunk, Value value);
 #endif
