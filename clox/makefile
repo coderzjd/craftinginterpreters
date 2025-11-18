@@ -10,7 +10,9 @@ OBJS    := $(patsubst %.c,build/%.o,$(SRCS))
 TARGET  := build/clox
 
 run: all
-	@./$(TARGET)
+	@./$(TARGET) lox.lox
+repl: all
+	@./${TARGET}
 
 all: $(TARGET)
 
