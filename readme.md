@@ -39,4 +39,4 @@
 + [Bob Nystrom's 博客](https://journal.stuffwithstuff.com/archive/)
 + [Bob's 游戏编程模式](https://gameprogrammingpatterns.com/)
 + [Bob's magpie](https://magpie-lang.org/)
-+ [当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/12.%E7%B1%BB.md#121-oop-and-classes)
++ [当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/17.%E7%BC%96%E8%AF%91%E8%A1%A8%E8%BE%BE%E5%BC%8F.md#17%E7%BC%96%E8%AF%91%E8%A1%A8%E8%BE%BE%E5%BC%8F-compiling-expressions)
