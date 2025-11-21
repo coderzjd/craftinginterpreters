@@ -85,7 +85,7 @@ static void advance()
         parser.current = scanToken();
         if (parser.current.type != TOKEN_ERROR)
         {
-            printf("%.*s\n", parser.current.length, parser.current.start);
+            // printf("%.*s\n", parser.current.length, parser.current.start);
             break;
         }
 
