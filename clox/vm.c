@@ -44,6 +44,10 @@ Value pop()
 }
 static Value peek(int distance)
 {
+    // 在 C 里，指针就是数组的通用接口，[] 只是 *(ptr + offset) 的“甜语法”，负数、正数都能用，只要别越界。
+    // int a[] = {1, 2, 3};
+    // int *q = a;
+    // *(q + 1) 等价于 q[1]
     return vm.stackTop[-1 - distance];
 }
 static bool isFalsey(Value value)
