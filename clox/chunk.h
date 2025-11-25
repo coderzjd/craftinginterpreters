@@ -32,6 +32,7 @@ typedef struct
     uint8_t *code;
     // 偏移量查找对应的行号。
     int *lines;
+    // constants 存放的是编译时候产生的常量值
     ValueArray constants;
 } Chunk;
 
