@@ -2,6 +2,7 @@
 #define clox_vm_h
 
 #include "chunk.h"
+#include "table.h"
 #include "value.h"
 // 虚拟机一个固定的栈大小
 // 可能会压入太多的值并耗尽栈空间——典型的“堆栈溢出”错误
@@ -18,6 +19,8 @@ typedef struct
   Value *stackTop;
   // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
   Obj *objects;
+  // 字符串驻留
+  Table strings;
 } VM;
 typedef enum
 {

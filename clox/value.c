@@ -60,13 +60,7 @@ bool valuesEqual(Value a, Value b)
   case VAL_NUMBER:
     return AS_NUMBER(a) == AS_NUMBER(b);
   case VAL_OBJ:
-  {
-    ObjString *aString = AS_STRING(a);
-    ObjString *bString = AS_STRING(b);
-    // memcmp 按字节比较两段内存，返回 0 表示完全相同
-    return aString->length == bString->length &&
-           memcmp(aString->chars, bString->chars, aString->length) == 0;
-  }
+    return AS_OBJ(a) == AS_OBJ(b);
   default:
     return false; // Unreachable.
   }
