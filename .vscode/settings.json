@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "type_traits": "cpp",
-        "compare": "c"
+        "compare": "c",
+        "memory.h": "c"
     }
 }

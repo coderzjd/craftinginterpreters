@@ -2,6 +2,13 @@
 #define clox_value_h
 
 #include "common.h"
+// 头文件要“自给自足”且“最小公开”；h文件引入可能导致“污染范围”（因为h文件可能被外部引用）
+// .h 里 #include → “我这个头文件本身就需要它”（类型、宏、内联函数用到别人）
+// c 里 #include → “仅我这个实现文件需要它”（只在 .c 里用，头文件里用不到）
+
+// value.c里面#include "object.h"，但是value.h没有#include "object.h"，
+// 导致value.h里用到Obj类型时编译器报错找不到定义
+// 添加前向声明
 typedef struct Obj Obj;
 typedef struct ObjString ObjString;
 typedef enum
