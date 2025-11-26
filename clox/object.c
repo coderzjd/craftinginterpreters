@@ -52,6 +52,11 @@ static uint32_t hashString(const char *key, int length)
     }
     return hash;
 }
+// 字符串拼接也走缓存
+// "a"+"b" 先 malloc 出 "ab" → 马上 takeString("ab")；
+// 若 intern 表里已有 "ab"，会释放刚拼出来的那块内存，返回旧指针
+// 下次再拼 "a"+"b" 同样拿到同一指针，比较时直接 ptr == ptr。
+// 因此拼接结果也会被全局驻留，重复拼接不会泄露内存，也不会产生重复对象
 ObjString *takeString(char *chars, int length)
 {
     uint32_t hash = hashString(chars, length);
@@ -63,6 +68,10 @@ ObjString *takeString(char *chars, int length)
     }
     return allocateString(chars, length, hash);
 }
+// 把【外部】一段不一定在堆的字符序列拷贝进来，
+// 先查全局 intern 表：命中则直接返回旧指针；
+// 未命中则 malloc 一份新内存 → 做成 ObjString → 插入 intern 表 → 返回新指针。
+// 保证：出来的字符串全局唯一，可直接用指针比较。
 ObjString *copyString(const char *chars, int length)
 {
     uint32_t hash = hashString(chars, length);

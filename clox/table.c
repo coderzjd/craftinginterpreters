@@ -137,7 +137,7 @@ void tableAddAll(Table *from, Table *to)
     }
 }
 
-ObjString *tableFindString(Table *table, const char *chars,int length, uint32_t hash)
+ObjString *tableFindString(Table *table, const char *chars, int length, uint32_t hash)
 {
     if (table->count == 0)
         return NULL;
@@ -152,7 +152,8 @@ ObjString *tableFindString(Table *table, const char *chars,int length, uint32_t 
             if (IS_NIL(entry->value))
                 return NULL;
         }
-        // 如果存在哈希冲突，我们就进行实际的逐字符的字符串比较。这是虚拟机中我们真正测试字符串是否相等的一个地方
+        // 为了避免哈希冲突，命中桶之后
+        // 再进行实际的逐字符的字符串比较。这是虚拟机中我们真正测试字符串是否相等的一个地方
         else if (entry->key->length == length &&
                  entry->key->hash == hash &&
                  memcmp(entry->key->chars, chars, length) == 0)
