@@ -68,12 +68,15 @@ bool tableGet(Table *table, ObjString *key, Value *value)
 static void adjustCapacity(Table *table, int capacity)
 {
     Entry *entries = ALLOCATE(Entry, capacity);
+    printf("233: 55\n");
     for (int i = 0; i < capacity; i++)
     {
         entries[i].key = NULL;
         entries[i].value = NIL_VAL;
     }
+    printf("233: 66\n");
     table->count = 0;
+    printf("233: 77\n");
     // 这些新的桶可能会出现新的冲突，我们需要处理这些冲突。
     for (int i = 0; i < table->capacity; i++)
     {
@@ -86,6 +89,7 @@ static void adjustCapacity(Table *table, int capacity)
         dest->value = entry->value;
         table->count++;
     }
+    printf("233: 88\n");
     // 释放旧桶占用内存
     FREE_ARRAY(Entry, table->entries, table->capacity);
     table->entries = entries;
@@ -95,10 +99,12 @@ static void adjustCapacity(Table *table, int capacity)
 // 定的键/值对添加到给定的哈希表中。如果该键的条目已存在，新值将覆盖旧值。如果添加了新条目，则该函数返回true
 bool tableSet(Table *table, ObjString *key, Value value)
 {
+    printf("233: 33\n");
     if (table->count + 1 > table->capacity * TABLE_MAX_LOAD)
     {
         int capacity = GROW_CAPACITY(table->capacity);
         adjustCapacity(table, capacity);
+        printf("233: 44\n");
     }
     Entry *entry = findEntry(table->entries, table->capacity, key);
     bool isNewKey = entry->key == NULL;
