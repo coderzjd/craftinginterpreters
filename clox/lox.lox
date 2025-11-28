@@ -1,2 +1,2 @@
-var breakfast = "beignets";
-print 1;
+var breakfast = "111";
+print breakfast;
