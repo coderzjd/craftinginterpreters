@@ -17,10 +17,12 @@ typedef struct
   Value stack[STACK_MAX];
   // stackTop指向下一个值要被压入的位置
   Value *stackTop;
-  // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
-  Obj *objects;
+  // 全局变量存储
+  Table globals;
   // 字符串驻留
   Table strings;
+  // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
+  Obj *objects;
 } VM;
 typedef enum
 {
