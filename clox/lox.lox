@@ -1,1 +1,5 @@
-print 1 or 2;
+var a = 1;
+while(a>0){
+    a= a-1;
+    print a;
+}
