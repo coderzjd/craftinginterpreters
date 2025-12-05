@@ -52,8 +52,10 @@ typedef enum
     TYPE_SCRIPT
 } FunctionType;
 
-typedef struct
+typedef struct Compiler
 {
+    // 我们使用链表。每个Compiler都指向包含它的函数的Compiler，一直到顶层代码的根Compiler
+    struct Compiler *enclosing;
     // 支持隐式的顶层函数。
     // 这要从Compiler结构体开始。它不再直接指向编译器写入的Chunk，而是指向正在构建的函数对象的引用
     ObjFunction *function;
@@ -219,6 +221,7 @@ static void patchJump(int offset)
 
 static void initCompiler(Compiler *compiler, FunctionType type)
 {
+    compiler->enclosing = current;
     compiler->function = NULL;
     compiler->type = type;
     compiler->localCount = 0;
@@ -245,6 +248,7 @@ static ObjFunction *endCompiler()
         disassembleChunk(currentChunk(), function->name != NULL ? function->name->chars : "<script>");
     }
 #endif
+    current = current->enclosing;
     return function;
 }
 
@@ -353,6 +357,8 @@ static uint8_t parseVariable(const char *errorMessage)
 
 static void markInitialized()
 {
+    if (current->scopeDepth == 0)
+        return;
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
@@ -606,6 +612,29 @@ static void block()
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
 
+static void function(FunctionType type)
+{
+    Compiler compiler;
+    initCompiler(&compiler, type);
+    beginScope();
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+    block();
+
+    ObjFunction *function = endCompiler();
+    emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(function)));
+}
+
+static void funDeclaration()
+{
+    uint8_t global = parseVariable("Expect function name.");
+    markInitialized();
+    function(TYPE_FUNCTION);
+    defineVariable(global);
+}
+
 static void varDeclaration()
 {
     uint8_t global = parseVariable("Expect variable name.");
@@ -753,7 +782,11 @@ static void synchronize()
 
 static void declaration()
 {
-    if (match(TOKEN_VAR))
+    if (match(TOKEN_FUN))
+    {
+        funDeclaration();
+    }
+    else if (match(TOKEN_VAR))
     {
         varDeclaration();
     }
