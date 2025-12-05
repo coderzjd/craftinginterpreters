@@ -45,8 +45,19 @@ typedef struct
     int depth;
 } Local;
 
+typedef enum
+{
+    // FunctionType枚举。这让编译器可以区分它在编译顶层代码还是函数主体
+    TYPE_FUNCTION,
+    TYPE_SCRIPT
+} FunctionType;
+
 typedef struct
 {
+    // 支持隐式的顶层函数。
+    // 这要从Compiler结构体开始。它不再直接指向编译器写入的Chunk，而是指向正在构建的函数对象的引用
+    ObjFunction *function;
+    FunctionType type;
     // 通过 语法-语义分析阶段就把“运行时栈布局”一次性算完
     // locals[] 既是编译期的符号表，又是运行期的“栈布局图”——数组下标就是将来 VM 里的裸偏移
     Local locals[UINT8_COUNT];
@@ -59,10 +70,10 @@ typedef struct
 Parser parser;
 // current ： 当前正在编译的函数对应的 Compiler 结构体
 Compiler *current = NULL;
-Chunk *compilingChunk;
+// Chunk *compilingChunk;
 static Chunk *currentChunk()
 {
-    return compilingChunk;
+    return &current->function->chunk;
 }
 static void errorAt(Token *token, const char *message)
 {
@@ -206,22 +217,35 @@ static void patchJump(int offset)
     currentChunk()->code[offset + 1] = jump & 0xff;
 }
 
-static void initCompiler(Compiler *compiler)
+static void initCompiler(Compiler *compiler, FunctionType type)
 {
+    compiler->function = NULL;
+    compiler->type = type;
     compiler->localCount = 0;
     compiler->scopeDepth = 0;
+    compiler->function = newFunction();
     current = compiler;
+
+    // 编译器的locals数组记录了哪些栈槽与哪些局部变量或临时变量相关联。
+    // 从现在开始，编译器隐式地要求栈槽0供虚拟机自己内部使用。
+    // 我们给它一个空的名称，这样用户就不能向一个指向它的标识符写值
+    Local *local = &current->locals[current->localCount++];
+    local->depth = 0;
+    local->name.start = "";
+    local->name.length = 0;
 }
 
-static void endCompiler()
+static ObjFunction *endCompiler()
 {
     emitReturn();
+    ObjFunction *function = current->function;
 #ifdef DEBUG_PRINT_CODE
     if (!parser.hadError)
     {
-        disassembleChunk(currentChunk(), "code");
+        disassembleChunk(currentChunk(), function->name != NULL ? function->name->chars : "<script>");
     }
 #endif
+    return function;
 }
 
 static void beginScope()
@@ -771,12 +795,12 @@ static void statement()
         expressionStatement();
     }
 }
-bool compile(const char *source, Chunk *chunk)
+ObjFunction *compile(const char *source)
 {
     initScanner(source);
     Compiler compiler;
-    initCompiler(&compiler);
-    compilingChunk = chunk;
+    initCompiler(&compiler, TYPE_SCRIPT);
+    // compilingChunk = chunk;
     parser.hadError = false;
     parser.panicMode = false;
     advance();
@@ -784,6 +808,6 @@ bool compile(const char *source, Chunk *chunk)
     {
         declaration();
     }
-    endCompiler();
-    return !parser.hadError;
+    ObjFunction *function = endCompiler();
+    return parser.hadError ? NULL : function;
 }

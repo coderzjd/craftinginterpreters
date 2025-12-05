@@ -96,8 +96,15 @@ ObjString *copyString(const char *chars, int length)
     return allocateString(heapChars, length, hash);
 }
 
-static void printFunction(ObjFunction* function) {
-  printf("<fn %s>", function->name->chars);
+static void printFunction(ObjFunction *function)
+{
+    // 用户没有办法获取对顶层函数的引用并试图打印它
+    if (function->name == NULL)
+    {
+        printf("<script>");
+        return;
+    }
+    printf("<fn %s>", function->name->chars);
 }
 
 void printObject(Value value)
