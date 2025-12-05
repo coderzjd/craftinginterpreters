@@ -47,13 +47,17 @@ typedef struct
 
 typedef struct
 {
+    // 通过 语法-语义分析阶段就把“运行时栈布局”一次性算完
+    // locals[] 既是编译期的符号表，又是运行期的“栈布局图”——数组下标就是将来 VM 里的裸偏移
     Local locals[UINT8_COUNT];
     // localCount字段记录了作用域中有多少局部变量
     int localCount;
+    // scopeDepth记录当前编译的代码块的作用域深度
     int scopeDepth;
 } Compiler;
 
 Parser parser;
+// current ： 当前正在编译的函数对应的 Compiler 结构体
 Compiler *current = NULL;
 Chunk *compilingChunk;
 static Chunk *currentChunk()
@@ -191,6 +195,7 @@ static void beginScope()
 static void endScope()
 {
     current->scopeDepth--;
+    // 在离开某个作用域时，把该作用域内新添加的局部变量全部弹出栈。
     while (current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth)
     {
         emitByte(OP_POP);
@@ -216,7 +221,7 @@ static bool identifiersEqual(Token *a, Token *b)
         return false;
     return memcmp(a->start, b->start, a->length) == 0;
 }
-
+// 查找本地变量
 static int resolveLocal(Compiler *compiler, Token *name)
 {
     for (int i = compiler->localCount - 1; i >= 0; i--)
@@ -242,6 +247,7 @@ static void addLocal(Token name)
         error("Too many local variables in function.");
         return;
     }
+    // localCount++ 就是当前变量在vm's stack存储index
     Local *local = &current->locals[current->localCount++];
     local->name = name;
     local->depth = -1;
@@ -253,7 +259,7 @@ static void declareVariable()
         return;
 
     Token *name = &parser.previous;
-
+    // 局部变量的名称根本不重要，只需要防止重复就行了，不想全局变量需要拿name计算hash存储
     for (int i = current->localCount - 1; i >= 0; i--)
     {
         Local *local = &current->locals[i];
@@ -261,7 +267,8 @@ static void declareVariable()
         {
             break;
         }
-
+        // 我们声明一个新的变量时，我们从末尾开始，
+        // 反向查找具有相同名称的已有变量。如果是当前作用域中找到，我们就报告错误
         if (identifiersEqual(name, &local->name))
         {
             error("Already a variable with this name in this scope.");
@@ -277,6 +284,7 @@ static uint8_t parseVariable(const char *errorMessage)
     declareVariable();
     if (current->scopeDepth > 0)
     {
+        // 局部变量不需要返回常量索引，返回一个假的表索引
         return 0;
     }
     return identifierConstant(&parser.previous);
@@ -378,6 +386,8 @@ static void string(bool canAssign)
 static void namedVariable(Token name, bool canAssign)
 {
     uint8_t getOp, setOp;
+    // resolveLocal 返回值可以直接当 OP_GET_LOCAL 的操作数
+    // 返回-1，表示没有找到，应该假定它是一个全局变量
     int arg = resolveLocal(current, &name);
     if (arg != -1)
     {

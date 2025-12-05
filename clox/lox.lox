@@ -1,8 +1,4 @@
-{
-    var aa = 1;
     {
-        var aa = 2;
+        var aa = 1;
         print aa;
     }
-    print aa;
-}
