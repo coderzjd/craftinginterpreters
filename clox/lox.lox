@@ -1,3 +1,9 @@
+fun makeClosure(value) {
+  fun closure() {
+    print value;
+  }
+  return closure;
+}
 
-var start = clock();
-print clock() - start;
+var doughnut = makeClosure("doughnut");
+doughnut();

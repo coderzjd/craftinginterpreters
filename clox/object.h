@@ -6,12 +6,16 @@
 #include "value.h"
 // 获取OBJ类型
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
+// 我们用一个宏来检查某个值是否闭包。
+#define IS_CLOSURE(value) isObjType(value, OBJ_CLOSURE)
 // 确保你的值实际上是一个函数
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUNCTION)
 // 我们用一个宏来检查某个值是否本地函数。
 #define IS_NATIVE(value) isObjType(value, OBJ_NATIVE)
 // 通过c语言结构体内存对齐特性实现继承
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
+// Value安全地转换为一个ObjClosure指针
+#define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
 // Value安全地转换为一个ObjFunction指针
 #define AS_FUNCTION(value) ((ObjFunction *)AS_OBJ(value))
 // Value安全地转换为一个ObjNative指针本地函数的Value中提取C函数指针
@@ -23,6 +27,7 @@
 #define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 typedef enum
 {
+  OBJ_CLOSURE,
   OBJ_FUNCTION,
   OBJ_NATIVE,
   OBJ_STRING,
@@ -61,6 +66,14 @@ struct ObjString
   char *chars;
   uint32_t hash;
 };
+// 闭包对象
+typedef struct
+{
+  Obj obj;
+  ObjFunction *function;
+} ObjClosure;
+
+ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
 ObjNative *newNative(NativeFn function);
 ObjString *takeString(char *chars, int length);
