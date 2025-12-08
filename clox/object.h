@@ -8,10 +8,15 @@
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 // 确保你的值实际上是一个函数
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUNCTION)
+// 我们用一个宏来检查某个值是否本地函数。
+#define IS_NATIVE(value) isObjType(value, OBJ_NATIVE)
 // 通过c语言结构体内存对齐特性实现继承
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 // Value安全地转换为一个ObjFunction指针
 #define AS_FUNCTION(value) ((ObjFunction *)AS_OBJ(value))
+// Value安全地转换为一个ObjNative指针本地函数的Value中提取C函数指针
+#define AS_NATIVE(value) \
+  (((ObjNative *)AS_OBJ(value))->function)
 // 接受一个Value返回 ObjString* 指针
 #define AS_STRING(value) ((ObjString *)AS_OBJ(value))
 // // 接受一个Value返回 字符数组本身
@@ -19,6 +24,7 @@
 typedef enum
 {
   OBJ_FUNCTION,
+  OBJ_NATIVE,
   OBJ_STRING,
 } ObjType;
 
@@ -40,6 +46,14 @@ typedef struct
   ObjString *name;
 } ObjFunction;
 
+// 添加本地函数
+typedef Value (*NativeFn)(int argCount, Value *args);
+typedef struct
+{
+  Obj obj;
+  NativeFn function;
+} ObjNative;
+
 struct ObjString
 {
   Obj obj;
@@ -48,6 +62,7 @@ struct ObjString
   uint32_t hash;
 };
 ObjFunction *newFunction();
+ObjNative *newNative(NativeFn function);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
 void printObject(Value value);
