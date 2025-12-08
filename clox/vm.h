@@ -10,8 +10,8 @@
 
 // 一个CallFrame代表一个正在进行的函数调用
 typedef struct {
-  // 一个指向被调用函数的指针
-  ObjFunction* function;
+  // 一个指向被调用闭包的指针
+   ObjClosure* closure;
   //返回地址存储在被调用者的帧中 ip 等到从函数中返回时，虚拟机会跳转到调用方的CallFrame的ip，并从那里继续执行
   uint8_t* ip;
   // slots字段指向虚拟机的值栈中该函数可以使用的第一个槽

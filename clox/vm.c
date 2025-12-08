@@ -31,7 +31,7 @@ static void runtimeError(const char *format, ...)
     for (int i = vm.frameCount - 1; i >= 0; i--)
     {
         CallFrame *frame = &vm.frames[i];
-        ObjFunction *function = frame->function;
+        ObjFunction *function = frame->closure->function;
         size_t instruction = frame->ip - function->chunk.code - 1;
         fprintf(stderr, "[line %d] in ", function->chunk.lines[instruction]);
         if (function->name == NULL)
@@ -91,12 +91,12 @@ static Value peek(int distance)
 }
 
 // 切换函数执行CallFrames上下文
-static bool call(ObjFunction *function, int argCount)
+static bool call(ObjClosure *closure, int argCount)
 {
     // 函数参数个数拦截校验
-    if (argCount != function->arity)
+    if (argCount != closure->function->arity)
     {
-        runtimeError("Expected %d arguments but got %d.", function->arity, argCount);
+        runtimeError("Expected %d arguments but got %d.", closure->function->arity, argCount);
         return false;
     }
     // CallFrame数组具有固定的大小，我们需要确保一个深的调用链不会溢
@@ -106,8 +106,8 @@ static bool call(ObjFunction *function, int argCount)
         return false;
     }
     CallFrame *frame = &vm.frames[vm.frameCount++];
-    frame->function = function;
-    frame->ip = function->chunk.code;
+    frame->closure = closure;
+    frame->ip = closure->function->chunk.code;
     frame->slots = vm.stackTop - argCount - 1;
     return true;
 }
@@ -118,8 +118,8 @@ static bool callValue(Value callee, int argCount)
     {
         switch (OBJ_TYPE(callee))
         {
-        case OBJ_FUNCTION:
-            return call(AS_FUNCTION(callee), argCount);
+        case OBJ_CLOSURE:
+            return call(AS_CLOSURE(callee), argCount);
         case OBJ_NATIVE:
         {
             // 如果被调用的对象是一个本地函数，我们就会立即调用C函数。
@@ -173,7 +173,7 @@ static InterpretResult run()
      (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1]))
 
 #define READ_CONSTANT() \
-    (frame->function->chunk.constants.values[READ_BYTE()])
+    (frame->closure->function->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(valueType, op)                        \
@@ -199,7 +199,7 @@ static InterpretResult run()
             printf(" ]");
         }
         printf("\n");
-        disassembleInstruction(&frame->function->chunk, (int)(frame->ip - frame->function->chunk.code));
+        disassembleInstruction(&frame->closure->function->chunk, (int)(frame->ip - frame->closure->function->chunk.code));
 #endif
         uint8_t instruction;
         switch (instruction = READ_BYTE())
@@ -353,6 +353,13 @@ static InterpretResult run()
             frame = &vm.frames[vm.frameCount - 1];
             break;
         }
+        case OP_CLOSURE:
+        {
+            ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
+            ObjClosure *closure = newClosure(function);
+            push(OBJ_VAL(closure));
+            break;
+        }
         case OP_RETURN:
         {
             // 当函数返回一个值时，该值会在栈顶
@@ -386,7 +393,10 @@ InterpretResult interpret(const char *source)
         return INTERPRET_COMPILE_ERROR;
 
     push(OBJ_VAL(function));
-    call(function, 0);
+    ObjClosure *closure = newClosure(function);
+    pop();
+    push(OBJ_VAL(closure));
+    call(closure, 0);
     printf("vm is runing !\n");
     return run();
 }
