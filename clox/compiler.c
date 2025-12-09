@@ -45,6 +45,12 @@ typedef struct
     int depth;
 } Local;
 
+typedef struct
+{
+    uint8_t index;
+    bool isLocal;
+} Upvalue;
+
 typedef enum
 {
     // FunctionType枚举。这让编译器可以区分它在编译顶层代码还是函数主体
@@ -65,6 +71,8 @@ typedef struct Compiler
     Local locals[UINT8_COUNT];
     // localCount字段记录了作用域中有多少局部变量
     int localCount;
+    // 记录闭包上值信息的数组
+    Upvalue upvalues[UINT8_COUNT];
     // scopeDepth记录当前编译的代码块的作用域深度
     int scopeDepth;
 } Compiler;
@@ -309,6 +317,47 @@ static int resolveLocal(Compiler *compiler, Token *name)
 
     return -1;
 }
+// 添加上值变量
+static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
+{
+    int upvalueCount = compiler->function->upvalueCount;
+
+    // 一个闭包可能会多次引用外围函数中的同一个变量
+    // 如果我们在数组中找到与待添加的上值索引相匹配的上值，我们就返回该上值的索引并复用它。
+    // 否则，我们就放弃，并添加新的上值
+    for (int i = 0; i < upvalueCount; i++)
+    {
+        Upvalue *upvalue = &compiler->upvalues[i];
+        if (upvalue->index == index && upvalue->isLocal == isLocal)
+        {
+            return i;
+        }
+    }
+    // 限制上值数组容量
+    if (upvalueCount == UINT8_COUNT)
+    {
+        error("Too many closure variables in function.");
+        return 0;
+    }
+    compiler->upvalues[upvalueCount].isLocal = isLocal;
+    compiler->upvalues[upvalueCount].index = index;
+    return compiler->function->upvalueCount++;
+}
+// 查找上值变量
+static int resolveUpvalue(Compiler *compiler, Token *name)
+{
+    if (compiler->enclosing == NULL)
+        return -1;
+
+    // Compiler中存储了一个指向外层函数Compiler的指针，这些指针形成了一个链，一直到顶层代码的根Compiler
+    int local = resolveLocal(compiler->enclosing, name);
+    if (local != -1)
+    {
+        return addUpvalue(compiler, (uint8_t)local, true);
+    }
+
+    return -1;
+}
 
 static void addLocal(Token name)
 {
@@ -511,6 +560,12 @@ static void namedVariable(Token name, bool canAssign)
     {
         getOp = OP_GET_LOCAL;
         setOp = OP_SET_LOCAL;
+    }
+    // 这个新的resolveUpvalue()函数会查找在任何外围函数中声明的局部变量。如果找到了，就会返回该变量的“上值索引”。
+    else if ((arg = resolveUpvalue(current, &name)) != -1)
+    {
+        getOp = OP_GET_UPVALUE;
+        setOp = OP_SET_UPVALUE;
     }
     else
     {

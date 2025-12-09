@@ -46,6 +46,8 @@ typedef struct
   // arity字段存储了函数所需要的参数数量
   int arity;
   // 函数体：字节码块
+  // 记录上值个数
+  int upvalueCount;
   Chunk chunk;
   // 存储函数名称
   ObjString *name;
