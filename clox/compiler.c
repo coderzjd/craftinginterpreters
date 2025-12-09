@@ -350,12 +350,18 @@ static int resolveUpvalue(Compiler *compiler, Token *name)
         return -1;
 
     // Compiler中存储了一个指向外层函数Compiler的指针，这些指针形成了一个链，一直到顶层代码的根Compiler
+    // 如果在局部变量中查找到name，就把它添加为上值变量，并返回上值索引，且设置isLocal为true
     int local = resolveLocal(compiler->enclosing, name);
     if (local != -1)
     {
         return addUpvalue(compiler, (uint8_t)local, true);
     }
-
+    // 查找enclosing上的上值变量，且设置isLocal为false
+    int upvalue = resolveUpvalue(compiler->enclosing, name);
+    if (upvalue != -1)
+    {
+        return addUpvalue(compiler, (uint8_t)upvalue, false);
+    }
     return -1;
 }
 
@@ -573,6 +579,7 @@ static void namedVariable(Token name, bool canAssign)
         getOp = OP_GET_GLOBAL;
         setOp = OP_SET_GLOBAL;
     }
+    // 当编译器到达函数声明的结尾时，每个变量的引用都已经被解析为局部变量、上值或全局变量。
     if (canAssign && match(TOKEN_EQUAL))
     {
         expression();
@@ -724,6 +731,15 @@ static void function(FunctionType type)
 
     ObjFunction *function = endCompiler();
     emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
+
+    for (int i = 0; i < function->upvalueCount; i++)
+    {
+        // 如果第一个字节是1，它捕获的就是外层函数中的一个局部变量。
+        // 如果是0，它捕获的是函数的一个上值。
+        emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
+        // 下一个字节是要捕获局部变量插槽或上值索引。
+        emitByte(compiler.upvalues[i].index);
+    }
 }
 
 static void funDeclaration()
