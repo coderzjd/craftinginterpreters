@@ -75,6 +75,8 @@ typedef struct ObjUpvalue
   Obj obj;
   // 上值捕获Value数组指针
   Value *location;
+  // 当上值从栈上退出移到堆上时，closed字段保存了它的实际值
+  Value closed;
   // 使用链表指向下一元素
   struct ObjUpvalue* next;
 } ObjUpvalue;

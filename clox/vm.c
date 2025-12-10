@@ -173,6 +173,27 @@ static ObjUpvalue *captureUpvalue(Value *local)
     // VM现在可以确保每个指定的局部变量槽都只有一个ObjUpvalue。如果两个闭包捕获了相同的变量，它们会得到相同的上值
     return createdUpvalue;
 }
+
+// closeUpvalues 只干一件事儿：把“还指向栈、且地址 ≥ last 这一级”的所有 open upvalue 节点，一次性搬离栈、永久落户到堆。
+static void closeUpvalues(Value *last)
+{
+    // 1、last 是即将消失的那一段栈的“起始地址
+    // 2、链表按 location 降序排列，头插法 → 越靠头的节点，location 值越大。
+    // 3、从链表头开始，只要节点还指向 ≥ last 的栈地址，就说明它马上会变成悬空指针，必须处理。
+    // 4、因为降序，一旦遇到 < last 的节点，后面全安全，可立即结束循环。
+    // 5、取出当前头节点（location 最大）。
+    // 6、把栈上的值拷贝到堆里的 closed 字段——“搬家”第一步。
+    // 7、把 location 指针改指向自己的 closed 字段——从此脱离栈，后续读写都走堆。
+    // 8、把头节点摘掉，继续处理下一个可能也 ≥ last 的节点。
+    while (vm.openUpvalues != NULL && vm.openUpvalues->location >= last)
+    {
+        ObjUpvalue *upvalue = vm.openUpvalues;
+        upvalue->closed = *upvalue->location;
+        upvalue->location = &upvalue->closed;
+        vm.openUpvalues = upvalue->next;
+    }
+}
+
 static bool isFalsey(Value value)
 {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
@@ -420,10 +441,17 @@ static InterpretResult run()
             }
             break;
         }
+        // 到达该指令时，我们要提取的变量就在栈顶。我们调用一个辅助函数，传入栈槽的地址。该函数负责关闭上值，并将局部变量从栈中移动到堆上
+        case OP_CLOSE_UPVALUE:
+            closeUpvalues(vm.stackTop - 1);
+            pop();
+            break;
         case OP_RETURN:
         {
             // 当函数返回一个值时，该值会在栈顶
             Value result = pop();
+            // 当函数返回时，我们调用相同的辅助函数，并传入函数拥有的第一个栈槽
+            closeUpvalues(frame->slots);
             vm.frameCount--;
             // 如果是最后一个CallFrame，这意味着我们已经完成了顶层代码的执行
             if (vm.frameCount == 0)
