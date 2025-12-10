@@ -33,6 +33,8 @@ typedef struct
   Table globals;
   // 字符串驻留
   Table strings;
+  // openUpvalues 存储指向打开的上值链表的头
+  ObjUpvalue* openUpvalues;
   // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
   Obj *objects;
 } VM;

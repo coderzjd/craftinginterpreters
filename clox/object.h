@@ -75,6 +75,8 @@ typedef struct ObjUpvalue
   Obj obj;
   // 上值捕获Value数组指针
   Value *location;
+  // 使用链表指向下一元素
+  struct ObjUpvalue* next;
 } ObjUpvalue;
 
 // 闭包对象

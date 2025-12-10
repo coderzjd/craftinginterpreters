@@ -141,7 +141,36 @@ static bool callValue(Value callee, int argCount)
 
 static ObjUpvalue *captureUpvalue(Value *local)
 {
+    ObjUpvalue *prevUpvalue = NULL;
+    ObjUpvalue *upvalue = vm.openUpvalues;
+    // 我们从列表的头部开始，
+    // 我们有三个原因可以退出循环：
+    // 1.我们停止时的局部变量槽是我们要找的槽。我在找到了一个现有的上值捕获了这个变量，因此我们重用这个上值
+    // 2.我们找不到需要搜索的上值了。当upvalue为NULL时，这意味着列表中每个开放上值都指向位于我们要找的槽之上的局部变量，或者（更可能是）上值列表是空的。无论怎样，我们都没有找到对应该槽的上值
+    // 3.我们找到了一个上值，其局部变量槽低于我们正查找的槽位。因为列表是有序的，这意味着我们已经超过了正在关闭的槽，因此肯定没有对应该槽的已有上值。
+    while (upvalue != NULL && upvalue->location > local)
+    {
+        prevUpvalue = upvalue;
+        upvalue = upvalue->next;
+    }
+
+    if (upvalue != NULL && upvalue->location == local)
+    {
+        return upvalue;
+    }
+
     ObjUpvalue *createdUpvalue = newUpvalue(local);
+    // 只需要添加代码将上值插入到列表中。我们退出列表遍历的原因，要么是到达了列表末尾，要么是停在了第一个栈槽低于待查找槽位的上值
+    createdUpvalue->next = upvalue;
+    if (prevUpvalue == NULL)
+    {
+        vm.openUpvalues = createdUpvalue;
+    }
+    else
+    {
+        prevUpvalue->next = createdUpvalue;
+    }
+    // VM现在可以确保每个指定的局部变量槽都只有一个ObjUpvalue。如果两个闭包捕获了相同的变量，它们会得到相同的上值
     return createdUpvalue;
 }
 static bool isFalsey(Value value)
