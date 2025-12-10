@@ -43,6 +43,8 @@ typedef struct
     Token name;
     //   depth字段记录了声明局部变量的代码块的作用域深度
     int depth;
+    // 局部变量被后面嵌套的任何函数声明捕获，字段则为true
+    bool isCaptured;
 } Local;
 
 typedef struct
@@ -247,6 +249,7 @@ static void initCompiler(Compiler *compiler, FunctionType type)
     // 我们给它一个空的名称，这样用户就不能向一个指向它的标识符写值
     Local *local = &current->locals[current->localCount++];
     local->depth = 0;
+    local->isCaptured = false;
     local->name.start = "";
     local->name.length = 0;
 }
@@ -276,7 +279,19 @@ static void endScope()
     // 在离开某个作用域时，把该作用域内新添加的局部变量全部弹出栈。
     while (current->localCount > 0 && current->locals[current->localCount - 1].depth > current->scopeDepth)
     {
-        emitByte(OP_POP);
+        // 在块作用域的末尾，当编译器生成字节码来释放局部变量的栈槽时，我们可以判断哪些数据需要被提取到堆中
+        if (current->locals[current->localCount - 1].isCaptured)
+        {
+            emitByte(OP_CLOSE_UPVALUE);
+            // 现在，生成的字节码准确地告诉运行时，每个被捕获的局部变量必须移动到堆中的确切时间。
+            // 更好的是，它只对被闭包使用并需要这种特殊处理的局部变量才会这样做。
+            // 这与我们的总体性能目标是一致的，即我们希望用户只为他们使用的功能付费。
+            // 那些不被闭包使用的变量只会出现于栈中，就像以前一样
+        }
+        else
+        {
+            emitByte(OP_POP);
+        }
         current->localCount--;
     }
 }
@@ -355,6 +370,8 @@ static int resolveUpvalue(Compiler *compiler, Token *name)
     int local = resolveLocal(compiler->enclosing, name);
     if (local != -1)
     {
+        // 解析标识符时，如果我们最终为某个局部变量创建了一个上值，我们将其标记为已捕获
+        compiler->enclosing->locals[local].isCaptured = true;
         return addUpvalue(compiler, (uint8_t)local, true);
     }
     // 查找enclosing上的上值变量，且设置isLocal为false
@@ -381,6 +398,7 @@ static void addLocal(Token name)
     Local *local = &current->locals[current->localCount++];
     local->name = name;
     local->depth = -1;
+    local->isCaptured = false;
 }
 
 static void declareVariable()
