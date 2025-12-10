@@ -37,6 +37,8 @@ typedef enum
 struct Obj
 {
   ObjType type;
+  // 标记垃圾回收器是否已经标记了这个对象
+  bool isMarked;
   // 创建一个链表存储每个Obj。虚拟机可以遍历这个列表，找到在堆上分配的每一个对象
   struct Obj *next;
 };

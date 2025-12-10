@@ -13,9 +13,13 @@ static Obj *allocateObject(size_t size, ObjType type)
 {
     Obj *object = (Obj *)reallocate(NULL, 0, size);
     object->type = type;
+    object->isMarked = false;
     // 手动维护单链表： 每当我们分配一个Obj时，就将其插入到列表中
     object->next = vm.objects;
     vm.objects = object;
+#ifdef DEBUG_LOG_GC
+    printf("%p allocate %zu for %d\n", (void *)object, size, type);
+#endif
     return object;
 }
 ObjClosure *newClosure(ObjFunction *function)
