@@ -193,7 +193,24 @@ static void closeUpvalues(Value *last)
         vm.openUpvalues = upvalue->next;
     }
 }
+// 场景1：遇到 } 结束任意局部作用域（if / while / for / block）。
+// 只关当前栈顶那一个 slot（stackTop - 1），保证刚死亡的局部变量立即从 open 链表移除，不干扰后续代码。
 
+// 场景2：整个函数要返回，整帧即将 pop。
+// 把当前函数的全部 slots（从 frame->slots 到 stackTop）一次性关掉，防止帧销毁后还有 upvalue 悬空指向废栈。
+
+// fun f() {
+//   var a = 1;        // slot 0
+//   {                 // 新作用域
+//     var b = 2;      // slot 1
+//     fun g() { print a; print b; }
+//   }                 // ← 这里 emit OP_CLOSE_UPVALUE，只关 slot 1（b）
+//   return a;         // ← 函数返回前，slot 0（a） 仍指向栈，但帧马上要 pop
+// }
+// OP_CLOSE_UPVALUE 只把 b 搬堆；
+// a 还留在 slot 0，没人帮它提前关；
+// 函数返回时整帧销毁，如果不把 a 也搬堆，闭包 g 就悬空。
+// 因此 OP_RETURN 必须兜底批量关——从 frame->slots 到 stackTop 之间所有仍 open 的 upvalue 一次全搬走，保证帧 pop 后没有遗留指针指向废栈
 static bool isFalsey(Value value)
 {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
