@@ -21,6 +21,9 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize)
 static void freeObject(Obj* object) {
   switch (object->type) {
     case OBJ_CLOSURE: {
+      // ObjClosure并不拥有ObjUpvalue本身，但它确实拥有包含指向这些上值的指针的数组。
+      ObjClosure* closure = (ObjClosure*)object;
+      FREE_ARRAY(ObjUpvalue*, closure->upvalues,closure->upvalueCount);
       // 只释放ObjClosure本身，而不释放ObjFunction。这是因为闭包不拥有函数对象的内存管理权
       // 可能会有多个闭包都引用了同一个函数，但没有一个闭包声称对该函数有任何特殊的权限。
       // 我们不能释放某个ObjFunction，直到引用它的所有对象全部消失——甚至包括那些常量表中包含该函数的外围函数。
@@ -43,6 +46,10 @@ static void freeObject(Obj* object) {
       FREE(ObjString, object);
       break;
     }
+    case OBJ_UPVALUE:
+      // 多个闭包可以关闭同一个变量，所以ObjUpvalue并不拥有它引用的变量。因此，唯一需要释放的就是ObjUpvalue本身。
+      FREE(ObjUpvalue, object);
+      break;
   }
 }
 // 沿着链表释放所有对象

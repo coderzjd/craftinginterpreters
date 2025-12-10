@@ -15,7 +15,7 @@
 // 通过c语言结构体内存对齐特性实现继承
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 // Value安全地转换为一个ObjClosure指针
-#define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
+#define AS_CLOSURE(value) ((ObjClosure *)AS_OBJ(value))
 // Value安全地转换为一个ObjFunction指针
 #define AS_FUNCTION(value) ((ObjFunction *)AS_OBJ(value))
 // Value安全地转换为一个ObjNative指针本地函数的Value中提取C函数指针
@@ -31,6 +31,7 @@ typedef enum
   OBJ_FUNCTION,
   OBJ_NATIVE,
   OBJ_STRING,
+  OBJ_UPVALUE
 } ObjType;
 
 struct Obj
@@ -68,11 +69,24 @@ struct ObjString
   char *chars;
   uint32_t hash;
 };
+
+typedef struct ObjUpvalue
+{
+  Obj obj;
+  // 上值捕获Value数组指针
+  Value *location;
+} ObjUpvalue;
+
 // 闭包对象
 typedef struct
 {
   Obj obj;
   ObjFunction *function;
+  // 不同的闭包可能会有不同数量的上值，所以我们需要一个动态数组。
+  // 上值本身也是动态分配的，因此我们最终需要一个二级指针——一个指向动态分配的上值指针数组的指针
+  ObjUpvalue **upvalues;
+  // 存储数组中的元素数量
+  int upvalueCount;
 } ObjClosure;
 
 ObjClosure *newClosure(ObjFunction *function);
@@ -80,6 +94,7 @@ ObjFunction *newFunction();
 ObjNative *newNative(NativeFn function);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
+ObjUpvalue *newUpvalue(Value *slot);
 void printObject(Value value);
 // static inline 就不会触发多重定义，还能让编译器自由内联省掉 .o 文件和链接这一步
 // 高频、超短、零状态” 的小函数，用 static inline 扔到头文件里，是 C 世界里最常见、最合理的写法

@@ -1,9 +1,8 @@
-fun makeClosure(value) {
-  fun closure() {
-    print value;
+fun outer() {
+  var x = "outside";
+  fun inner() {
+    print x;
   }
-  return closure;
+  inner();
 }
-
-var doughnut = makeClosure("doughnut");
-doughnut();
+outer();

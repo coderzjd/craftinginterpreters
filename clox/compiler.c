@@ -344,6 +344,7 @@ static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
     return compiler->function->upvalueCount++;
 }
 // 查找上值变量
+// resolveUpvalue 返回的“索引”是“上一帧里那个局部变量在它自己CallFrame中的 slot 编号
 static int resolveUpvalue(Compiler *compiler, Token *name)
 {
     if (compiler->enclosing == NULL)
@@ -362,6 +363,10 @@ static int resolveUpvalue(Compiler *compiler, Token *name)
     {
         return addUpvalue(compiler, (uint8_t)upvalue, false);
     }
+    // addUpvalue这个函数其实会在每一个Compiler都记录对应的上值索引，是一层一层传递的
+    // 每个 Compiler 实例都有自己的 upvalues[] 小数组
+    // resolveUpvalue 发现“这个标识符在外层”时，先在外层 Compiler 里把它标成 captured，然后在本层 addUpvalue 记一条“我要抓外层第 x 号 slot”
+    // 如果外层本身也是内层，这条记录会随函数对象一起被带回更外层，形成“链式捕获”——运行时只要当前最外层帧还在，就能一级一级把变量全提出来。
     return -1;
 }
 
