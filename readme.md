@@ -39,4 +39,4 @@
 + [Bob Nystrom's 博客](https://journal.stuffwithstuff.com/archive/)
 + [Bob's 游戏编程模式](https://gameprogrammingpatterns.com/)
 + [Bob's magpie](https://magpie-lang.org/)
-+ [当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/26.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6.md#264-%E8%B7%9F%E8%B8%AA%E5%AF%B9%E8%B1%A1%E5%BC%95%E7%94%A8)
++ [当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/26.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6.md#2642-%E7%81%B0%E8%89%B2%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%88%97%E8%A1%A8)
