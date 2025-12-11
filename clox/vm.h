@@ -35,6 +35,10 @@ typedef struct
   Table strings;
   // openUpvalues 存储指向打开的上值链表的头
   ObjUpvalue* openUpvalues;
+  // bytesAllocated 是虚拟机已分配的托管内存实时字节总数
+  size_t bytesAllocated;
+  // nextGC 是触发下一次回收的阈值
+  size_t nextGC;
   // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
   Obj *objects;
   

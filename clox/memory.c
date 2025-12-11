@@ -6,9 +6,12 @@
 #include <stdio.h>
 #include "debug.h"
 #endif
+#define GC_HEAP_GROW_FACTOR 2
 
 void *reallocate(void *pointer, size_t oldSize, size_t newSize)
 {
+  // 每当我们分配或释放一些内存时，我们就根据差值来调整计数器。
+  vm.bytesAllocated += newSize - oldSize;
   // 每当我们调用reallocate()来获取更多内存时，都会强制运行一次回收
   // 这个if检查是因为，在释放或收缩分配的内存时也会调用reallocate()。
   // 我们不希望在这种时候触发GC——特别是因为GC本身也会调用reallocate()来释放内存
@@ -17,6 +20,11 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize)
 #ifdef DEBUG_STRESS_GC
     collectGarbage();
 #endif
+    // 当总数超过限制时，我们运行回收器。
+    if (vm.bytesAllocated > vm.nextGC)
+    {
+      collectGarbage();
+    }
   }
 
   if (newSize == 0)
@@ -232,6 +240,8 @@ void collectGarbage()
 {
 #ifdef DEBUG_LOG_GC
   printf("-- gc begin\n");
+  // 记录一我们在回收之前捕获堆的大小
+  size_t before = vm.bytesAllocated;
 #endif
   // 标记根
   markRoots();
@@ -241,7 +251,11 @@ void collectGarbage()
   tableRemoveWhite(&vm.strings);
   // 回收
   sweep();
+  // 所以在收集完成后，我们知道还有多少活动字节。我们在此基础上调整下一次GC的阈值
+  vm.nextGC = vm.bytesAllocated * GC_HEAP_GROW_FACTOR;
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");
+  // 我们就可以看到垃圾回收器在运行时完成了多少任务
+  printf("   collected %zu bytes (from %zu to %zu) next at %zu\n", before - vm.bytesAllocated, before, vm.bytesAllocated, vm.nextGC);
 #endif
 }
