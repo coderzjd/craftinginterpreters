@@ -237,6 +237,8 @@ void collectGarbage()
   markRoots();
   // 标记阶段
   traceReferences();
+  // 标记表中的字符串: 需要特殊处理
+  tableRemoveWhite(&vm.strings);
   // 回收
   sweep();
 #ifdef DEBUG_LOG_GC
