@@ -37,6 +37,13 @@ typedef struct
   ObjUpvalue* openUpvalues;
   // 存储一个指向表头的指针，链表中的每个对象都有一个指向下一个对象的指针
   Obj *objects;
+  
+  // grayCount 字段存储grayStack数组中的当前元素数量
+  int grayCount;
+  // grayCapacity 字段存储grayStack数组的当前容量
+  int grayCapacity;
+  // grayStack 跟踪所有的灰色对象
+  Obj** grayStack;
 } VM;
 typedef enum
 {

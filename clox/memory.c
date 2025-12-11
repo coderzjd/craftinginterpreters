@@ -38,6 +38,10 @@ void markObject(Obj *object)
 {
   if (object == NULL)
     return;
+  // 如果对象已经被标记，我们就不会再标记它，因此也不会把它添加到灰色栈中。这就保证了已经是灰色的对象不会被重复添加，
+  // 而且黑色对象不会无意中变回灰色。换句话说，它使得波前只通过白色对象向前移动
+  if (object->isMarked)
+    return;
 
 #ifdef DEBUG_LOG_GC
   printf("%p mark ", (void *)object);
@@ -45,6 +49,19 @@ void markObject(Obj *object)
   printf("\n");
 #endif
   object->isMarked = true;
+
+  if (vm.grayCapacity < vm.grayCount + 1)
+  {
+    vm.grayCapacity = GROW_CAPACITY(vm.grayCapacity);
+    vm.grayStack = (Obj **)realloc(vm.grayStack, sizeof(Obj *) * vm.grayCapacity);
+
+    if (vm.grayStack == NULL)
+    {
+      // 我们对这个数组负担全部责任，其中包括分配失败。如果我们不能创建或扩张灰色栈，那我们就无法完成垃圾回收
+      exit(1);
+    }
+  }
+  vm.grayStack[vm.grayCount++] = object;
 }
 
 void markValue(Value value)
@@ -52,6 +69,49 @@ void markValue(Value value)
   if (IS_OBJ(value))
     markObject(AS_OBJ(value));
 }
+
+static void markArray(ValueArray *array)
+{
+  for (int i = 0; i < array->count; i++)
+  {
+    markValue(array->values[i]);
+  }
+}
+static void blackenObject(Obj *object)
+{
+#ifdef DEBUG_LOG_GC
+  printf("%p blacken ", (void *)object);
+  printValue(OBJ_VAL(object));
+  printf("\n");
+#endif
+  switch (object->type)
+  {
+  case OBJ_CLOSURE:
+  {
+    ObjClosure *closure = (ObjClosure *)object;
+    markObject((Obj *)closure->function);
+    for (int i = 0; i < closure->upvalueCount; i++)
+    {
+      markObject((Obj *)closure->upvalues[i]);
+    }
+    break;
+  }
+  case OBJ_FUNCTION:
+  {
+    ObjFunction *function = (ObjFunction *)object;
+    markObject((Obj *)function->name);
+    markArray(&function->chunk.constants);
+    break;
+  }
+  case OBJ_UPVALUE:
+    markValue(((ObjUpvalue *)object)->closed);
+    break;
+  case OBJ_NATIVE:
+  case OBJ_STRING:
+    break;
+  }
+}
+
 static void freeObject(Obj *object)
 {
 #ifdef DEBUG_LOG_GC
@@ -104,6 +164,8 @@ void freeObjects()
     freeObject(object);
     object = next;
   }
+  // 当VM关闭时，我们需要释放它。
+  free(vm.grayStack);
 }
 static void markRoots()
 {
@@ -124,12 +186,59 @@ static void markRoots()
   markCompilerRoots();
 }
 
+static void traceReferences()
+{
+  while (vm.grayCount > 0)
+  {
+    Obj *object = vm.grayStack[--vm.grayCount];
+    blackenObject(object);
+  }
+}
+
+static void sweep()
+{
+  Obj *previous = NULL;
+  Obj *object = vm.objects;
+  // 外层的while循环会遍历堆中每个对象组成的链表，检查它们的标记位。
+  // 如果某个对象被标记（黑色），我们就不管它，继续进行。
+  // 如果它没有被标记（白色），我们将它从链表中断开，并使用我们已经写好的freeObject()函数释放它
+  while (object != NULL)
+  {
+    if (object->isMarked)
+    {
+      object->isMarked = false;
+      previous = object;
+      object = object->next;
+    }
+    else
+    {
+      Obj *unreached = object;
+      object = object->next;
+      if (previous != NULL)
+      {
+        previous->next = object;
+      }
+      else
+      {
+        vm.objects = object;
+      }
+
+      freeObject(unreached);
+    }
+  }
+}
+
 void collectGarbage()
 {
 #ifdef DEBUG_LOG_GC
   printf("-- gc begin\n");
 #endif
+  // 标记根
   markRoots();
+  // 标记阶段
+  traceReferences();
+  // 回收
+  sweep();
 #ifdef DEBUG_LOG_GC
   printf("-- gc end\n");
 #endif
