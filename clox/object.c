@@ -60,7 +60,9 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash)
     string->length = length;
     string->chars = chars;
     string->hash = hash;
+    push(OBJ_VAL(string));
     tableSet(&vm.strings, string, NIL_VAL);
+    pop();
     return string;
 }
 // 这是工业级“快而散”的 FNV-1a 32 位哈希；两个常量是规范魔法数，循环里“异或+乘”就能把任意字节序列均匀地搅成 32 位哈希值。
