@@ -39,4 +39,4 @@
 + [Bob Nystrom's 博客](https://journal.stuffwithstuff.com/archive/)
 + [Bob's 游戏编程模式](https://gameprogrammingpatterns.com/)
 + [Bob's magpie](https://magpie-lang.org/)
-+ [clox当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/26.%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6.md#2673-concatenating-strings)
++ [clox当前进度](https://readonly.link/books/https://raw.githubusercontent.com/GuoYaxiang/craftinginterpreters_zh/main/book.json/-/28.%E6%96%B9%E6%B3%95%E5%92%8C%E5%88%9D%E5%A7%8B%E5%8C%96%E5%99%A8.md#284-instance-initializers)
