@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "chunk.h"
+#include "table.h"
 #include "value.h"
 // 获取OBJ类型
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
@@ -12,6 +13,8 @@
 #define IS_CLOSURE(value) isObjType(value, OBJ_CLOSURE)
 // 确保你的值实际上是一个函数
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUNCTION)
+// 确保你的值实际上是一个OBJ_INSTANCE
+#define IS_INSTANCE(value) isObjType(value, OBJ_INSTANCE)
 // 我们用一个宏来检查某个值是否本地函数。
 #define IS_NATIVE(value) isObjType(value, OBJ_NATIVE)
 // 通过c语言结构体内存对齐特性实现继承
@@ -23,6 +26,8 @@
 #define AS_CLOSURE(value) ((ObjClosure *)AS_OBJ(value))
 // Value安全地转换为一个ObjFunction指针
 #define AS_FUNCTION(value) ((ObjFunction *)AS_OBJ(value))
+// Value安全地转换为一个ObjInstance指针
+#define AS_INSTANCE(value) ((ObjInstance *)AS_OBJ(value))
 // Value安全地转换为一个ObjNative指针本地函数的Value中提取C函数指针
 #define AS_NATIVE(value) \
   (((ObjNative *)AS_OBJ(value))->function)
@@ -35,6 +40,7 @@ typedef enum
   OBJ_CLASS,
   OBJ_CLOSURE,
   OBJ_FUNCTION,
+  OBJ_INSTANCE,
   OBJ_NATIVE,
   OBJ_STRING,
   OBJ_UPVALUE
@@ -106,9 +112,18 @@ typedef struct
   Obj obj;
   ObjString *name;
 } ObjClass;
+
+typedef struct
+{
+  Obj obj;
+  ObjClass *klass;
+  Table fields;
+} ObjInstance;
+
 ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
+ObjInstance *newInstance(ObjClass *klass);
 ObjNative *newNative(NativeFn function);
 ObjString *takeString(char *chars, int length);
 ObjString *copyString(const char *chars, int length);
