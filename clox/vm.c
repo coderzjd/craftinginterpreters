@@ -222,6 +222,14 @@ static void closeUpvalues(Value *last)
 // a 还留在 slot 0，没人帮它提前关；
 // 函数返回时整帧销毁，如果不把 a 也搬堆，闭包 g 就悬空。
 // 因此 OP_RETURN 必须兜底批量关——从 frame->slots 到 stackTop 之间所有仍 open 的 upvalue 一次全搬走，保证帧 pop 后没有遗留指针指向废栈
+
+static void defineMethod(ObjString *name)
+{
+    Value method = peek(0);
+    ObjClass *klass = AS_CLASS(peek(1));
+    tableSet(&klass->methods, name, method);
+    pop();
+}
 static bool isFalsey(Value value)
 {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
@@ -392,7 +400,7 @@ static InterpretResult run()
                 runtimeError("Only instances have fields.");
                 return INTERPRET_RUNTIME_ERROR;
             }
-            
+
             ObjInstance *instance = AS_INSTANCE(peek(1));
             tableSet(&instance->fields, READ_STRING(), peek(0));
             Value value = pop();
@@ -536,6 +544,9 @@ static InterpretResult run()
         }
         case OP_CLASS:
             push(OBJ_VAL(newClass(READ_STRING())));
+            break;
+        case OP_METHOD:
+            defineMethod(READ_STRING());
             break;
         }
     }
