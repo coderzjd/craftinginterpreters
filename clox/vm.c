@@ -489,6 +489,9 @@ static InterpretResult run()
             frame = &vm.frames[vm.frameCount - 1];
             break;
         }
+        case OP_CLASS:
+            push(OBJ_VAL(newClass(READ_STRING())));
+            break;
         }
     }
     // 在函数退出之前 #undef READ_BYTE，外部就无法使用这个宏了
