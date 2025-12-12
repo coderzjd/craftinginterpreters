@@ -94,6 +94,12 @@ static void blackenObject(Obj *object)
 #endif
   switch (object->type)
   {
+  case OBJ_CLASS:
+  {
+    ObjClass *klass = (ObjClass *)object;
+    markObject((Obj *)klass->name);
+    break;
+  }
   case OBJ_CLOSURE:
   {
     ObjClosure *closure = (ObjClosure *)object;
@@ -127,6 +133,11 @@ static void freeObject(Obj *object)
 #endif
   switch (object->type)
   {
+  case OBJ_CLASS:
+  {
+    FREE(ObjClass, object);
+    break;
+  }
   case OBJ_CLOSURE:
   {
     // ObjClosure并不拥有ObjUpvalue本身，但它确实拥有包含指向这些上值的指针的数组。

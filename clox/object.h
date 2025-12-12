@@ -6,6 +6,8 @@
 #include "value.h"
 // 获取OBJ类型
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
+// 我们用一个宏来检查某个值是否类对象OBJ_CLASS。
+#define IS_CLASS(value) isObjType(value, OBJ_CLASS)
 // 我们用一个宏来检查某个值是否闭包。
 #define IS_CLOSURE(value) isObjType(value, OBJ_CLOSURE)
 // 确保你的值实际上是一个函数
@@ -14,6 +16,9 @@
 #define IS_NATIVE(value) isObjType(value, OBJ_NATIVE)
 // 通过c语言结构体内存对齐特性实现继承
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
+
+// Value安全地转换为一个ObjClass指针
+#define AS_CLASS(value) ((ObjClass *)AS_OBJ(value))
 // Value安全地转换为一个ObjClosure指针
 #define AS_CLOSURE(value) ((ObjClosure *)AS_OBJ(value))
 // Value安全地转换为一个ObjFunction指针
@@ -27,6 +32,7 @@
 #define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 typedef enum
 {
+  OBJ_CLASS,
   OBJ_CLOSURE,
   OBJ_FUNCTION,
   OBJ_NATIVE,
@@ -80,7 +86,7 @@ typedef struct ObjUpvalue
   // 当上值从栈上退出移到堆上时，closed字段保存了它的实际值
   Value closed;
   // 使用链表指向下一元素
-  struct ObjUpvalue* next;
+  struct ObjUpvalue *next;
 } ObjUpvalue;
 
 // 闭包对象
@@ -95,6 +101,12 @@ typedef struct
   int upvalueCount;
 } ObjClosure;
 
+typedef struct
+{
+  Obj obj;
+  ObjString *name;
+} ObjClass;
+ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
 ObjNative *newNative(NativeFn function);
