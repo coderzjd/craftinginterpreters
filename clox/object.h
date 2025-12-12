@@ -7,6 +7,8 @@
 #include "value.h"
 // 获取OBJ类型
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
+// 我们用一个宏来检查某个值是否类对象OBJ_BOUND_METHOD
+#define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
 // 我们用一个宏来检查某个值是否类对象OBJ_CLASS。
 #define IS_CLASS(value) isObjType(value, OBJ_CLASS)
 // 我们用一个宏来检查某个值是否闭包。
@@ -20,6 +22,8 @@
 // 通过c语言结构体内存对齐特性实现继承
 #define IS_STRING(value) isObjType(value, OBJ_STRING)
 
+// Value安全地转换为一个ObjBoundMethod指针
+#define AS_BOUND_METHOD(value) ((ObjBoundMethod *)AS_OBJ(value))
 // Value安全地转换为一个ObjClass指针
 #define AS_CLASS(value) ((ObjClass *)AS_OBJ(value))
 // Value安全地转换为一个ObjClosure指针
@@ -37,6 +41,7 @@
 #define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 typedef enum
 {
+  OBJ_BOUND_METHOD,
   OBJ_CLASS,
   OBJ_CLOSURE,
   OBJ_FUNCTION,
@@ -120,7 +125,14 @@ typedef struct
   ObjClass *klass;
   Table fields;
 } ObjInstance;
+typedef struct
+{
+  Obj obj;
+  Value receiver;
+  ObjClosure *method;
+} ObjBoundMethod;
 
+ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
