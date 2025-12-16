@@ -702,10 +702,18 @@ static void super_(bool canAssign)
 
     // 第一条指令将实例加载到栈中。
     namedVariable(syntheticToken("this"), false);
-    // 第二条指令加载了将用于解析方法的超类。
-    namedVariable(syntheticToken("super"), false);
-    // 新的OP_GET_SUPER指令将要访问的方法名称编码为操作数。
-    emitBytes(OP_GET_SUPER, name);
+    if (match(TOKEN_LEFT_PAREN))
+    {
+        uint8_t argCount = argumentList();
+        namedVariable(syntheticToken("super"), false);
+        emitBytes(OP_SUPER_INVOKE, name);
+        emitByte(argCount);
+    }
+    else
+    {
+        namedVariable(syntheticToken("super"), false);
+        emitBytes(OP_GET_SUPER, name);
+    }
 }
 
 static void this_(bool canAssign)
@@ -908,7 +916,7 @@ static void classDeclaration()
         }
         // 创建一个新的词法作用域可以确保 super 在一个定义域内不冲突
         beginScope();
-        
+
         addLocal(syntheticToken("super"));
         defineVariable(0);
 
