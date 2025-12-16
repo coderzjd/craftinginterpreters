@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+// NaN装箱形式的支持
+#define NAN_BOXING
 #define DEBUG_PRINT_CODE
 #define DEBUG_TRACE_EXECUTION
 // 我们将为垃圾回收器添加一个可选的“压力测试”模式。当定义这个标志后，GC就会尽可能频繁地运行
