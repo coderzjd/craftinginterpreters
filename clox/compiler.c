@@ -573,6 +573,15 @@ static void dot(bool canAssign)
         expression();
         emitBytes(OP_SET_PROPERTY, name);
     }
+    else if (match(TOKEN_LEFT_PAREN))
+    {
+        // 一个带点的属性访问后面跟着一个左括号，很可能是一个方法调用
+        // 我们寻找一个左括号。如果匹配到了，则切换到一个新的代码路径
+        // 跳过创建ObjBoundMethod的流程直接调用
+        uint8_t argCount = argumentList();
+        emitBytes(OP_INVOKE, name);
+        emitByte(argCount);
+    }
     else
     {
         emitBytes(OP_GET_PROPERTY, name);
