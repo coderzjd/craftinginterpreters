@@ -65,6 +65,8 @@ void initVM()
     vm.grayStack = NULL;
     initTable(&vm.globals);
     initTable(&vm.strings);
+    vm.initString = NULL;
+    vm.initString = copyString("init", 4);
     // 添加本地函数
     defineNative("clock", clockNative);
 }
@@ -73,6 +75,7 @@ void freeVM()
 {
     freeTable(&vm.globals);
     freeTable(&vm.strings);
+    vm.initString = NULL;
     freeObjects();
 }
 void push(Value value)
@@ -134,6 +137,20 @@ static bool callValue(Value callee, int argCount)
         {
             ObjClass *klass = AS_CLASS(callee);
             vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+
+            Value initializer;
+            // 在类中寻找init()方法。如果找到了，就对其发起调用
+            // init()方法的新CallFrame共享了这个栈窗口
+            if (tableGet(&klass->methods, vm.initString, &initializer))
+            {
+                return call(AS_CLOSURE(initializer), argCount);
+            }
+            else if (argCount != 0)
+            {
+                // 如果没有init()方法，那么在创建实例时向类传递参数就没有意义了。我们将其当作一个错误
+                runtimeError("Expected 0 arguments but got %d.", argCount);
+                return false;
+            }
             return true;
         }
         case OBJ_CLOSURE:
