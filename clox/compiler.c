@@ -58,6 +58,7 @@ typedef enum
 {
     // FunctionType枚举。这让编译器可以区分它在编译顶层代码还是函数主体
     TYPE_FUNCTION,
+    TYPE_INITIALIZER,
     TYPE_METHOD,
     TYPE_SCRIPT
 } FunctionType;
@@ -202,7 +203,14 @@ static int emitJump(uint8_t instruction)
 
 static void emitReturn()
 {
-    emitByte(OP_NIL);
+    if (current->type == TYPE_INITIALIZER)
+    {
+        emitBytes(OP_GET_LOCAL, 0);
+    }
+    else
+    {
+        emitByte(OP_NIL);
+    }
     emitByte(OP_RETURN);
 }
 static uint8_t makeConstant(Value value)
@@ -821,6 +829,11 @@ static void method()
     consume(TOKEN_IDENTIFIER, "Expect method name.");
     uint8_t constant = identifierConstant(&parser.previous);
     FunctionType type = TYPE_METHOD;
+
+    if (parser.previous.length == 4 && memcmp(parser.previous.start, "init", 4) == 0)
+    {
+        type = TYPE_INITIALIZER;
+    }
     function(type);
     emitBytes(OP_METHOD, constant);
 }
@@ -978,6 +991,11 @@ static void returnStatement()
     }
     else
     {
+        // 从class init中返回任何其它值的行为成为错误
+        if (current->type == TYPE_INITIALIZER)
+        {
+            error("Can't return a value from an initializer.");
+        }
         // 否则，我们编译返回值表达式，并用OP_RETURN指令将其返回。
         expression();
         consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
