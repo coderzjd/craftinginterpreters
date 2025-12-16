@@ -58,6 +58,7 @@ typedef enum
 {
     // FunctionType枚举。这让编译器可以区分它在编译顶层代码还是函数主体
     TYPE_FUNCTION,
+    TYPE_METHOD,
     TYPE_SCRIPT
 } FunctionType;
 
@@ -80,9 +81,16 @@ typedef struct Compiler
     int scopeDepth;
 } Compiler;
 
+typedef struct ClassCompiler
+{
+    struct ClassCompiler *enclosing;
+} ClassCompiler;
+
 Parser parser;
 // current ： 当前正在编译的函数对应的 Compiler 结构体
 Compiler *current = NULL;
+// currentClass 指向一个表示当前正在编译的最内部类的结构体
+ClassCompiler *currentClass = NULL;
 // Chunk *compilingChunk;
 static Chunk *currentChunk()
 {
@@ -251,8 +259,20 @@ static void initCompiler(Compiler *compiler, FunctionType type)
     Local *local = &current->locals[current->localCount++];
     local->depth = 0;
     local->isCaptured = false;
-    local->name.start = "";
-    local->name.length = 0;
+    // initCompiler对于TYPE_METHOD 方法来说，local存储的局部变量中index = 0保留给了this关键字
+    // this_ 中进行 variable 的 resolveLocal 解析到这个局部变量 index = 0
+    // 运行时先通过OBJ_BOUND_METHOD插入 vm.stackTop[-argCount - 1] = bound->receiver; this实例到栈顶index=0的位置
+    // 当运行时遇到 this调用时，它会从栈底的槽 0 处获取该实例引用
+    if (type != TYPE_FUNCTION)
+    {
+        local->name.start = "this";
+        local->name.length = 4;
+    }
+    else
+    {
+        local->name.start = "";
+        local->name.length = 0;
+    }
 }
 
 static ObjFunction *endCompiler()
@@ -637,6 +657,19 @@ static void variable(bool canAssign)
     namedVariable(parser.previous, canAssign);
 }
 
+static void this_(bool canAssign)
+{
+    // 每进入一个类体，classDeclaration() 就把一个 ClassCompiler 压入 currentClass 链表；
+    // currentClass == null 表示 类之外，此时 的this就被正确地禁止了。
+    if (currentClass == NULL)
+    {
+        error("Can't use 'this' outside of a class.");
+        return;
+    }
+    // 用于判断编译器是否应该查找后续的=运算符并解析setter。你不能给this赋值，所以我们传入false来禁止它。
+    variable(false);
+}
+
 static void unary(bool canAssign)
 {
     TokenType operatorType = parser.previous.type;
@@ -696,7 +729,7 @@ ParseRule rules[] = {
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},
     [TOKEN_SUPER] = {NULL, NULL, PREC_NONE},
-    [TOKEN_THIS] = {NULL, NULL, PREC_NONE},
+    [TOKEN_THIS] = {this_, NULL, PREC_NONE},
     [TOKEN_TRUE] = {literal, NULL, PREC_NONE},
     [TOKEN_VAR] = {NULL, NULL, PREC_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PREC_NONE},
@@ -787,7 +820,7 @@ static void method()
 {
     consume(TOKEN_IDENTIFIER, "Expect method name.");
     uint8_t constant = identifierConstant(&parser.previous);
-    FunctionType type = TYPE_FUNCTION;
+    FunctionType type = TYPE_METHOD;
     function(type);
     emitBytes(OP_METHOD, constant);
 }
@@ -798,18 +831,27 @@ static void classDeclaration()
     Token className = parser.previous;
     uint8_t nameConstant = identifierConstant(&parser.previous);
     declareVariable();
-
+    // 先压入class
     emitBytes(OP_CLASS, nameConstant);
     defineVariable(nameConstant);
+
+    ClassCompiler classCompiler;
+    classCompiler.enclosing = currentClass;
+    currentClass = &classCompiler;
+
     namedVariable(className, false);
     consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
-    emitByte(OP_POP);
+
     while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF))
     {
+        // 再压入每一个method
         method();
     }
 
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+    // 弹出class
+    emitByte(OP_POP);
+    currentClass = currentClass->enclosing;
 }
 static void funDeclaration()
 {

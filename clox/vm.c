@@ -123,6 +123,13 @@ static bool callValue(Value callee, int argCount)
     {
         switch (OBJ_TYPE(callee))
         {
+        case OBJ_BOUND_METHOD:
+        {
+            ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
+            // 当某个方法被调用时，栈顶包含所有的参数，然后在这些参数下面是被调用方法的闭包。这就是新的CallFrame中槽0所在的位置
+            vm.stackTop[-argCount - 1] = bound->receiver;
+            return call(bound->method, argCount);
+        }
         case OBJ_CLASS:
         {
             ObjClass *klass = AS_CLASS(callee);
@@ -148,6 +155,23 @@ static bool callValue(Value callee, int argCount)
     }
     runtimeError("Can only call functions and classes.");
     return false;
+}
+
+static bool bindMethod(ObjClass *klass, ObjString *name)
+{
+    Value method;
+    // 我们在类的方法表中查找具有指定名称的方法。如果我们没有找到，我们就报告一个运行时错误并退出。否则，
+    if (!tableGet(&klass->methods, name, &method))
+    {
+        runtimeError("Undefined property '%s'.", name->chars);
+        return false;
+    }
+    // 我们获取该方法，并将其包装为一个新的ObjBoundMethod。我们从栈顶获得接收器。
+    ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+    pop();
+    // 最后，我们弹出实例，并将这个已绑定方法替换到栈顶
+    push(OBJ_VAL(bound));
+    return true;
 }
 
 static ObjUpvalue *captureUpvalue(Value *local)
@@ -225,9 +249,11 @@ static void closeUpvalues(Value *last)
 
 static void defineMethod(ObjString *name)
 {
+    // 在给class添加方法时 methods本身已经在栈顶，class在方法下面一个位置
     Value method = peek(0);
     ObjClass *klass = AS_CLASS(peek(1));
     tableSet(&klass->methods, name, method);
+    // 弹出方法，class类保留在栈上
     pop();
 }
 static bool isFalsey(Value value)
@@ -388,9 +414,12 @@ static InterpretResult run()
                 push(value);
                 break;
             }
-            // 这个字段可能不存在。在Lox中，我们将其定义为运行时错误
-            runtimeError("Undefined property '%s'.", name->chars);
-            return INTERPRET_RUNTIME_ERROR;
+            // 字段优先于方法，因此我们首先查找字段。如果实例确实不包含具有给定属性名称的字段，那么这个名称可能指向的是一个方法
+            if (!bindMethod(instance->klass, name))
+            {
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
         }
         case OP_SET_PROPERTY:
         {

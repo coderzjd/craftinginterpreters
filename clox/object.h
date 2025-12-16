@@ -128,7 +128,9 @@ typedef struct
 typedef struct
 {
   Obj obj;
+  // receiver：调用这个方法时，this 应该指向的具体实例。
   Value receiver;
+  // method：类里定义的那个原始闭包（ObjClosure *），也就是方法本身的字节码和常量表。
   ObjClosure *method;
 } ObjBoundMethod;
 
