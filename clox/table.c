@@ -22,6 +22,7 @@ void freeTable(Table *table)
 static Entry *findEntry(Entry *entries, int capacity, ObjString *key)
 {
     // 对hash桶进行线性探测
+    // 利用2进制为底数的按位与运算实现模运算
     uint32_t index = key->hash & (capacity - 1);
     // 定义墓碑
     Entry *tombstone = NULL;

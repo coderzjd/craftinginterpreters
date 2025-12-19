@@ -14,6 +14,23 @@ typedef struct ObjString ObjString;
 
 #ifdef NAN_BOXING
 
+// NaN-boxing 总结（一句话版 + 三步版）
+// 一句话
+// 把「小数据+类型标签」全部塞进 IEEE-754 NaN 的 51 位废位，64 bit 一值到底，靠位运算完成拆装，省内存、省分支、省缓存。
+// 三步实现
+// 借位：选固定 NaN 位模式 0x7FF8...，低 51 bit 当仓库。
+// 装箱：
+// value = (payload & 48_bit_mask) | (tag << 48) | NaN_mask
+// 一条或指令完成。
+// 拆箱：
+// tag = value >> 48
+// payload = value & 48_bit_mask
+// 一条移位+一条与指令完成。
+// 三大优化
+// 密度：值数组 64 bit/元素，缓存行装 8 个，命中率↑
+// 速度：纯寄存器位运算，无分支，流水线不断
+// 内存：小整数/布尔/指针免堆分配，GC 压力↓
+
 #define SIGN_BIT ((uint64_t)0x8000000000000000)
 #define QNAN ((uint64_t)0x7ffc000000000000)
 #define TAG_NIL 1   // 01.
