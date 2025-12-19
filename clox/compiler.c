@@ -699,7 +699,10 @@ static void super_(bool canAssign)
     consume(TOKEN_DOT, "Expect '.' after 'super'.");
     consume(TOKEN_IDENTIFIER, "Expect superclass method name.");
     uint8_t name = identifierConstant(&parser.previous);
-
+    // 这就是 Robert Nystrom 的“栈即作用域”式小巧思：
+    // OP_INHERIT 的时候 父类对象一旦压栈就故意不弹；
+    // 再把 super 硬绑到槽 0；
+    // super 不是指针，也不是魔法，就是栈里那个没被人 pop 的父类本体。
     // 第一条指令将实例加载到栈中。
     namedVariable(syntheticToken("this"), false);
     if (match(TOKEN_LEFT_PAREN))
@@ -908,6 +911,7 @@ static void classDeclaration()
     if (match(TOKEN_LESS))
     {
         consume(TOKEN_IDENTIFIER, "Expect superclass name.");
+        // 解析父类class变量压入stack
         variable(false);
 
         if (identifiersEqual(&className, &parser.previous))
@@ -917,6 +921,8 @@ static void classDeclaration()
         // 创建一个新的词法作用域可以确保 super 在一个定义域内不冲突
         beginScope();
 
+        // 只在编译器侧的 compiler.locals[] 数组里追加一条记录，
+        // “以后只要见到标识符 super，就给我发 OP_GET_LOCAL 0 / OP_SET_LOCAL 0
         addLocal(syntheticToken("super"));
         defineVariable(0);
 
